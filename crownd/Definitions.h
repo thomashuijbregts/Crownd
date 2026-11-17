@@ -1635,7 +1635,7 @@ namespace defs {
 		if constexpr (castlingSide == 3) return 0x9 | 0x14;
 	}
 
-	ForceInline int popLSB(U64* bb) {
+	ForceInline int popLSB(uint64_t* bb) {
 		int sq = SquareOf(*bb);
 		*bb = BitReset(*bb);
 		return sq;
