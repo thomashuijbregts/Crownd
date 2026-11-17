@@ -1,0 +1,110 @@
+#include "TranspositionTable.h"
+#if defined(_WIN32)
+#include <windows.h>
+#pragma comment(lib, "advapi32.lib")
+#else
+#include <sys/mman.h>
+#endif
+
+namespace tt {
+
+#if defined(_WIN32)
+    static bool enableLargePages() {
+        HANDLE token;
+        if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES, &token)) return false;
+
+        TOKEN_PRIVILEGES tp;
+        tp.PrivilegeCount = 1;
+        tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+
+        if (!LookupPrivilegeValue(nullptr, SE_LOCK_MEMORY_NAME, &tp.Privileges[0].Luid)) {
+            CloseHandle(token);
+            return false;
+        }
+
+        AdjustTokenPrivileges(token, FALSE, &tp, 0, nullptr, nullptr);
+        CloseHandle(token);
+
+        return true;
+    }
+#else
+    constexpr size_t HUGE_PAGE = 2 * 1024 * 1024;
+#endif
+
+    void init(size_t mb) {
+        printf("\n");
+        printf("Initializing transposition table\n");
+
+        U64 bytes = utils::availableMemory();
+        printf("Available memory: %llu MB\n", bytes >> 20);
+
+        bool custom = false;
+        U64 b;
+        if (mb > 0) {
+            b = U64(mb) << 20;
+            if (b > bytes)  printf("Requested size (%zu MB) is more than available memory\n", mb);
+            else            custom = true;
+        }
+
+        if (custom) {
+            bytes = b;
+            printf("Using requested TT size: %zu MB\n", mb);
+        }
+        else {
+            bytes = U64(bytes * 0.9);
+            printf("Using 90%% of available memory\n");
+        }
+
+        size_t n = bytes / sizeof(Bucket);
+        n = std::bit_floor(n);
+
+        BYTES = n * sizeof(Bucket);
+        MASK = n - 1;
+
+        printf("Final size: %llu MB\n", BYTES >> 20);
+
+        largePages = false;
+
+#if defined(_WIN32)
+        if (enableLargePages()) {
+            SIZE_T min = GetLargePageMinimum();
+            if (min > 0) {
+                SIZE_T size = (BYTES + min - 1) & ~(min - 1);
+                void* mem = VirtualAlloc(nullptr, size, MEM_LARGE_PAGES | MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+                if (mem) {
+                    TABLE = static_cast<Bucket*>(mem);
+                    largePages = true;
+                    printf("Using large pages\n");
+                }
+            }
+        }
+
+        if (!largePages) {
+            TABLE = static_cast<Bucket*>(::operator new(BYTES, std::align_val_t(64)));
+            printf("Large pages unavailable, using standard allocation\n");
+        }
+#else
+        TABLE = static_cast<Bucket*>(::operator new(BYTES, std::align_val_t(HUGE_PAGE)));
+        if (madvise(TABLE, BYTES, MADV_HUGEPAGE) == 0) printf("Using transparent huge pages\n");
+        else                                           printf("Huge pages unavailable, using standard allocation\n");
+#endif
+
+        clear();
+        printf("Initialization complete\n\n");
+    }
+
+    void free() {
+        if (TABLE) {
+#if defined(_WIN32)
+            if (largePages) VirtualFree(TABLE, 0, MEM_RELEASE);
+            else            ::operator delete(TABLE, std::align_val_t(64));
+#else
+            ::operator delete(TABLE, std::align_val_t(HUGE_PAGE));
+#endif
+            TABLE = nullptr;
+            MASK = 0;
+            BYTES = 0;
+        }
+        printf("Transposition table cleared\n");
+    }
+}
