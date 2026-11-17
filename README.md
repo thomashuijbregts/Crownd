@@ -5,9 +5,9 @@
 </div>
 
 # About
-This is a UCI compliant chess engine written in c++, with NNUE evaluation. 
-The main motivation for this project was to get an introduction to neural networks, but also as round 2 of a chess engine started over 10 years ago that I had given up on due to my limited knowledge for the HCE. "Cui.h", a custom command user interface, is a remnant of that time. 
-Crownd is built upon the code of my perft engine,  <a href="https://github.com/thomashuijbregts/chessbit">chessbit</a>, using a tweaked version of its move generator.
+This is a UCI compliant chess engine written in c++, with NNUE evaluation.\
+The main motivation for this project was to get an introduction to neural networks, but also as round 2 of a chess engine started over 10 years ago that I had given up on due to my limited knowledge for the HCE. "Cui.h", a custom command user interface, is a remnant of that time. \
+Crownd is built upon the code of my perft engine,  <a href="https://github.com/thomashuijbregts/chessbit">chessbit</a>, using a tweaked version of its move generator.\
 The name crownd is a tribute to my dear mother, whose name is literally that in French, and it works for chess at the same time! The "e" was omitted for style points.
 
 # Strength
@@ -18,7 +18,7 @@ The code only supports AVX2 and AVX512 architectures, and makes use of Single In
 
 The code supports both Windows and Linux machines.
 
-There are binaries available in the releases (compiled with clang), but if something is missing, you can also use the committed Makefile script and download the network in the releases (nnue_x.bin).
+There are binaries available in the releases (compiled with clang), but if something is missing, you can also use the committed Makefile script and download the network in the releases (nnue_x.bin).\
 The network is incorporated in the binary using #embed (normally available with the recent versions of clang, icx and gcc, but not with MSVC), so just place it in the same folder while compiling.
 
 | Arch             | Arg                      | VNNI  | VBMI | Name                          |
@@ -34,8 +34,8 @@ The network is incorporated in the binary using #embed (normally available with 
 If you're not sure what you can run, I suggest you start from the bottom and work your way up to the top of this list.
 
 # Move generation
-Bitboards with pext for the bishop/rook attack tables lookups.
-See <a href="https://github.com/thomashuijbregts/chessbit">chessbit</a> for all the details.
+Bitboards with pext for the bishop/rook attack tables lookups.\
+See <a href="https://github.com/thomashuijbregts/chessbit">chessbit</a> for all the details.\
 Several "perft only" tricks and template parameters were removed to accomodate the engine's needs. The BoardState struct was also reworked to fit into 128 bytes to reduce cache pressure.
 
 # Search
@@ -78,7 +78,7 @@ Many different pruning methods and heuristics are implemented to improve the Alp
 - Counter moves
 
 # NNUE
-The network is trained on Lc0 data, using 0 WDL and a cosine decay for the learning rate (from 0.001 to 0.000001).
+The network is trained on Lc0 data, using 0 WDL and a cosine decay for the learning rate (from 0.001 to 0.000001).\
 It uses the HalfKA features, with horizontal mirroring (32 king buckets), as well as threat inputs (called piece relationships - pcRel - in this project), with 75202 total features.
 
 # To do
