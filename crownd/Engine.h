@@ -401,7 +401,7 @@ namespace engine {
     }
 
     template <bool side, bool first = false, bool null = false, bool nullVerif = false>
-    Inline int alphaBeta(Worker& w, int depth, const BoardState& parent, const BoardState& board, int ply, int alpha, int beta, int extensions, bool cutNode, uint16_t seMove = 0) {
+    Inline int alphaBeta(Worker& w, int depth, const BoardState& parent, const BoardState& board, int ply, int alpha, int beta, bool cutNode, uint16_t seMove = 0) {
         if (ply >= MAX_PLY - 1) return nnue::evaluate<side>(w.nnue, ply, parent, board);
 
         if constexpr (!first) {
@@ -567,7 +567,7 @@ namespace engine {
 
                         int score;
                         if (nullDepth <= 0) score = -quiescence<!side>(w, board, nullBoard, ply + 1, -beta, -beta + 1);
-                        else                score = -alphaBeta<!side, false, true>(w, nullDepth, board, nullBoard, ply + 1, -beta, -beta + 1, extensions, !cutNode);
+                        else                score = -alphaBeta<!side, false, true>(w, nullDepth, board, nullBoard, ply + 1, -beta, -beta + 1, !cutNode);
 
                         //if (score >= beta) return score >= TB_MATE_MAX_PLY ? beta : score;
                         //if (score >= beta && score < TB_MATE_MAX_PLY) return score;
@@ -577,7 +577,7 @@ namespace engine {
                             if (w.nullPlies || depth < NMP_VERIF_DEPTH) return score;
 
                             w.nullPlies = ply + nullDepth * 3 / 4;
-                            int verif = alphaBeta<side, false, false, true>(w, nullDepth, parent, board, ply, beta - 1, beta, extensions, false);
+                            int verif = alphaBeta<side, false, false, true>(w, nullDepth, parent, board, ply, beta - 1, beta, false);
                             w.nullPlies = 0;
 
                             if (verif >= beta) return score;
@@ -607,7 +607,7 @@ namespace engine {
                         if (score >= probCutBeta) {
                             int pcDepth = max(0, depth - PROBCUT_REDUCTION);
 
-                            score = -alphaBeta<!side>(w, pcDepth, board, m, ply + 1, -probCutBeta, -probCutBeta + 1, extensions, !cutNode);
+                            score = -alphaBeta<!side>(w, pcDepth, board, m, ply + 1, -probCutBeta, -probCutBeta + 1, !cutNode);
 
                             if (score >= probCutBeta) {
                                 if (!seMove) tt::write(pcDepth + 1, *ttBucket, board.zobrist, valueToTT(score, ply), ttEval, BLO, m.toInt(), tt::gen, ttPv);
@@ -705,27 +705,18 @@ namespace engine {
 
                     nnue::compute<side>(w.nnue, ply, parent, board);
 
-                    const int sScore = alphaBeta<side, false, null>(w, sDepth, parent, board, ply, sBeta - 1, sBeta, extensions, cutNode, pm);
+                    const int sScore = alphaBeta<side, false, null>(w, sDepth, parent, board, ply, sBeta - 1, sBeta, cutNode, pm);
 
-                    if (sScore < sBeta) {
-                        /*const int room = SE_MAX - extensions;
-
-                        if (room) {
-                            int ext = 1 + (!pvNode && sScore < sBeta - SE_DOUBLE_MARGIN) + (!pvNode && sScore < sBeta - SE_TRIPLE_MARGIN);
-
-                            extension = min(ext, room);
-                        }*/
+                    if (sScore < sBeta) 
                         extension = 1 + (!pvNode && sScore < sBeta - SE_DOUBLE_MARGIN) + (!pvNode && sScore < sBeta - SE_TRIPLE_MARGIN);
-                    }
                     else if (sBeta >= beta) {
                         return sBeta;
                     }
-                    else if (ttScore >= beta)   extension = -2 - cutNode;
-                    else if (cutNode)           extension = -2;
+                    else if (ttScore >= beta) extension = -2 - cutNode;
+                    else if (cutNode)         extension = -2;
                 }
             }
 
-            const int newExtensions = extensions + max(extension, 0);
             const int newDepth = max(0, depth - 1 + extension);
 
             U64 nodesStart = w.nodes;
@@ -764,18 +755,18 @@ namespace engine {
 
                 const int reducedDepth = clamp(newDepth - reduction, 0, newDepth + 1);
 
-                score = -alphaBeta<!side>(w, reducedDepth, board, m, ply + 1, -alpha - 1, -alpha, newExtensions, true);
+                score = -alphaBeta<!side>(w, reducedDepth, board, m, ply + 1, -alpha - 1, -alpha, true);
 
                 if (score > alpha && reducedDepth < newDepth) {
-                    score = -alphaBeta<!side>(w, newDepth, board, m, ply + 1, -alpha - 1, -alpha, newExtensions, !cutNode);
+                    score = -alphaBeta<!side>(w, newDepth, board, m, ply + 1, -alpha - 1, -alpha, !cutNode);
                 }
 
                 if (score > alpha && score < beta) {
-                    score = -alphaBeta<!side>(w, newDepth, board, m, ply + 1, -beta, -alpha, newExtensions, false);
+                    score = -alphaBeta<!side>(w, newDepth, board, m, ply + 1, -beta, -alpha, false);
                 }
             }
             else {
-                score = -alphaBeta<!side>(w, newDepth, board, m, ply + 1, -beta, -alpha, newExtensions, pvNode ? false : !cutNode);
+                score = -alphaBeta<!side>(w, newDepth, board, m, ply + 1, -beta, -alpha, pvNode ? false : !cutNode);
             }
 
             if constexpr (first) w.root.moveNodes[pm & 4095] += w.nodes - nodesStart;
@@ -906,7 +897,7 @@ namespace engine {
                     alpha = max(score - delta, -INF);
                     beta = min(score + delta, INF);
                     while (true) {
-                        newScore = alphaBeta<side, true>(w, d, board, board, 0, alpha, beta, 0, false);
+                        newScore = alphaBeta<side, true>(w, d, board, board, 0, alpha, beta, false);
 
                         if (newScore <= alpha) { 
                             beta = (alpha + beta) / 2;
@@ -924,7 +915,7 @@ namespace engine {
                     score = newScore;
                 }
                 else {
-                    score = alphaBeta<side, true>(w, d, board, board, 0, -INF, INF, 0, false);
+                    score = alphaBeta<side, true>(w, d, board, board, 0, -INF, INF, false);
                 }
             }
             catch (const StopSearch&) {

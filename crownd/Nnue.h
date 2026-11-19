@@ -977,7 +977,7 @@ namespace nnue {
 
         {
             vec clamp[2];
-            for (int half = 0; half < 2; ++half) {
+            repeat<2>([&](auto half) {
                 const int16_t* src = nnue.accs[ply].vals[half ? !side : side];
                 for (int i = 0; i < PW; i += W16) {
                     repeat<2>([&](auto k) { clamp[k] = min_epi16(max_epi16(load(src + i + (k * PW)), zero), qa); });
@@ -987,7 +987,7 @@ namespace nnue {
 
                     store_h(l1 + half * PW + i, cvtepi16_epi8(pairwise));
                 }
-            }
+            });
         }
 
         {
@@ -1016,10 +1016,10 @@ namespace nnue {
             vec l2Sum[OUT];
             repeat<OUT>([&](auto k) { l2Sum[k] = load(&net.l2B[bkt][k * W32]); });
 
-            for (int i = 0; i < L2_IN / 4; ++i) {
+            repeat<L2_IN / 4>([&](auto i) {
                 const vec in = set1_epi32(*(const int32_t*)(l2 + 4 * i));
                 repeat<OUT>([&](auto k) { l2Sum[k] = dpbusd(l2Sum[k], in, load(net.l2W[bkt][i][k * W32])); });
-            }
+            });
 
             repeat<OUT>([&](auto k) { store_q(l3 + k * W32, cvtepi32_epi8(screlu(l2Sum[k]))); });
         }

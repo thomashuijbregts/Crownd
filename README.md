@@ -1,6 +1,5 @@
-
 <div align="center">
-	<img src="https://i.imgur.com/koqdmmT.png" alt="Crownd logo"> <br> 
+	<img src="https://i.imgur.com/ilQuUoe.png" alt="Crownd logo"> <br> 
 	<a href="https://www.youtube.com/watch?v=uWWC-2pPSrE">The King Will Come!</a> 
 </div>
 
@@ -96,3 +95,4 @@ It uses the HalfKA features, with horizontal mirroring (32 king buckets), as wel
 - <a href="https://87flowers.com/byteboard-attack-tables-1/">87flowers</a>, for the SIMD accelerated threats updates, used in the AVX512 build (requires VBMI).
 - <a href="https://github.com/LeelaChessZero/lc0">Lc0</a>, for the data used in the network.
 - <a href="https://github.com/AndyGrant/Pyrrhic">Pyrrhic</a>, for easy Syzygy tables integration.
+- <a href="https://x.com/iamAlex_C">Mouiiyo</a>, for the engine logo.
